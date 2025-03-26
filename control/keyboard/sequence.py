@@ -6,7 +6,7 @@ Handles building sequences of keyboard actions.
 import logging
 import time
 import random
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any, Union, Tuple
 
 from ..config import Config
 

@@ -1,7 +1,7 @@
 
 # Control - Device Automation Agent
 
-Control is a robust automation agent for managing and executing operations on multiple Android devices. It serves as the execution layer that interacts directly with connected phones via ADB, executing workflows, verifying screens, and reporting results back to Cloud.
+Control is a automation agent for managing and executing operations on multiple Android devices. It serves as the execution layer that interacts directly with connected phones via ADB, executing workflows, verifying screens, and reporting results back to Cloud.
 
 ## System Architecture
 
@@ -13,6 +13,10 @@ Control is part of a larger automation platform with four main components:
 4. **Connect**: The user interface for monitoring and interacting with the system
 
 Control communicates exclusively with Cloud, acting as a thin execution layer that receives packages, executes them on devices, and reports results back.
+
+## Important Understanding
+
+Control does NOT handle logic or planning. Only execution and reporting. For example the reference code includes tap.py and swipe.py and type.py that contain
 
 ## Core Functionality
 

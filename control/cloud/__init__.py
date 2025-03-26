@@ -4,7 +4,7 @@ Handles WebSocket communication with Cloud relay service.
 """
 
 from .client import CloudClient
-from .protocol import MessageType, Message
+from .protocol import MessageType, Message, ProtocolConstants
 from .binary import BinaryTransfer
 
 __all__ = [
@@ -12,7 +12,8 @@ __all__ = [
     'MessageType',
     'Message',
     'BinaryTransfer',
-    'CloudError'
+    'CloudError',
+    'ProtocolConstants'
 ]
 
 class CloudError(Exception):

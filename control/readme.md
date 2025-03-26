@@ -105,7 +105,7 @@ control/
 │   │   └── step.py             # Step execution
 │   ├── sandbox/                # Secure code execution
 │   │   ├── __init__.py
-│   │   └── runner.py           # Special sequence and recovery execution
+│   │   └── runner.py           # Special sequence and recovery 
 │   ├── keyboard/               # Keyboard integration
 │   │   ├── __init__.py
 │   │   ├── client.py           # Keyboard client

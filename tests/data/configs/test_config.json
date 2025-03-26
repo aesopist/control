@@ -1,0 +1,127 @@
+{
+  "test_environment": {
+    "debug_mode": true,
+    "log_level": "DEBUG",
+    "cleanup_after_tests": true
+  },
+  "cloud_simulator": {
+    "host": "localhost",
+    "port": 8765,
+    "reconnect_interval": 5,
+    "ping_interval": 30
+  },
+  "device_simulator": {
+    "devices": [
+      {
+        "id": "test_device_1:5555",
+        "friendly_name": "Test Phone 1",
+        "screen": {
+          "width": 1080,
+          "height": 2400,
+          "orientation": "portrait"
+        }
+      },
+      {
+        "id": "test_device_2:5555",
+        "friendly_name": "Test Phone 2",
+        "screen": {
+          "width": 1440,
+          "height": 3200,
+          "orientation": "portrait"
+        }
+      }
+    ]
+  },
+  "workflow_builder": {
+    "encryption_key": "test_encryption_key_123",
+    "default_timeout": 5,
+    "default_retry_count": 3
+  },
+  "test_data": {
+    "screenshots": {
+      "home_screen": "home_screen.png",
+      "login_screen": "login_screen.png",
+      "profile_screen": "profile_screen.png"
+    },
+    "workflows": {
+      "basic_login": "basic_login_workflow.json",
+      "post_creation": "post_creation_workflow.json",
+      "profile_update": "profile_update_workflow.json"
+    }
+  },
+  "test_workflows": {
+    "basic_login": {
+      "device_id": "test_device_1:5555",
+      "sequences": [
+        {
+          "name": "Login Sequence",
+          "expected_screens": ["home_screen", "login_screen"],
+          "steps": [
+            {
+              "type": "tap",
+              "coordinates": [540, 1200],
+              "expected_screen_after": "login_screen",
+              "verification_timeout": 5
+            },
+            {
+              "type": "text",
+              "keyboard_sequence": {
+                "sequence": [
+                  {"action": "type", "text": "testuser", "delay_after": 0.2}
+                ]
+              }
+            },
+            {
+              "type": "text",
+              "keyboard_sequence": {
+                "sequence": [
+                  {"action": "type", "text": "testpass", "delay_after": 0.2}
+                ]
+              }
+            },
+            {
+              "type": "tap",
+              "coordinates": [540, 1400],
+              "expected_screen_after": "home_screen",
+              "verification_timeout": 5
+            }
+          ]
+        }
+      ],
+      "screen_registry": {
+        "home_screen": {
+          "name": "Home Screen",
+          "image": "home_screen.png",
+          "validation_regions": [
+            {"x1": 100, "y1": 200, "x2": 300, "y2": 400}
+          ]
+        },
+        "login_screen": {
+          "name": "Login Screen",
+          "image": "login_screen.png",
+          "validation_regions": [
+            {"x1": 400, "y1": 500, "x2": 600, "y2": 700}
+          ]
+        }
+      }
+    }
+  },
+  "test_recovery_scripts": {
+    "basic_recovery": {
+      "code": "print('Basic recovery script')\nreturn True",
+      "context": {
+        "last_known_screen": "login_screen",
+        "failed_step_id": "step_1"
+      }
+    }
+  },
+  "test_special_sequences": {
+    "basic_sequence": {
+      "code": "print('Basic special sequence')\nreturn True",
+      "parameters": {
+        "param1": "value1",
+        "param2": "value2"
+      }
+    }
+  }
+}

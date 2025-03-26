@@ -1,0 +1,21 @@
+# Build Tools
+setuptools>=69.0.0
+wheel>=0.42.0
+
+# Test Framework
+pytest==7.4.4
+pytest-asyncio==0.23.5
+pytest-cov==4.1.0
+
+# Image Processing
+pillow-simd>=10.0.0; platform_system != "Windows"  # For Linux/Mac
+pillow>=10.0.0; platform_system == "Windows"       # For Windows
+
+# WebSocket Support
+websockets==12.0
+
+# Cryptography
+cryptography==41.0.7
+
+# Utilities
+typing-extensions==4.9.0

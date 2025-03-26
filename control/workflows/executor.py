@@ -47,6 +47,10 @@ class WorkflowExecutor:
         
         # Initialize logging
         self.logger = logging.getLogger("WorkflowExecutor")
+
+        # Encryption settings
+        self.ENCRYPTION_BLOCK_SIZE = 16  # AES block size
+        self.KEY_SIZE = 32  # 256-bit key
         
         # Get required components
         self.device_manager = DeviceManager()
@@ -107,6 +111,57 @@ class WorkflowExecutor:
                 }
             ))
     
+    def _decrypt_package(self, encrypted_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Decrypt workflow package
+        
+        Args:
+            encrypted_data: Encrypted package data
+            
+        Returns:
+            Decrypted package data
+            
+        Raises:
+            ValueError: If decryption fails
+        """
+        try:
+            from cryptography.fernet import Fernet
+            from cryptography.hazmat.primitives import hashes
+            from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+            import base64
+            
+            # Get encryption key from config
+            encryption_key = self.config.get('workflow.encryption_key')
+            if not encryption_key:
+                raise ValueError("Workflow encryption key not configured")
+            
+            # Get salt and encrypted content
+            salt = base64.b64decode(encrypted_data.get('salt', ''))
+            encrypted_content = base64.b64decode(encrypted_data.get('content', ''))
+            
+            if not salt or not encrypted_content:
+                raise ValueError("Missing salt or encrypted content")
+            
+            # Derive key using PBKDF2
+            kdf = PBKDF2HMAC(
+                algorithm=hashes.SHA256(),
+                length=self.KEY_SIZE,
+                salt=salt,
+                iterations=100000,
+            )
+            key = base64.urlsafe_b64encode(kdf.derive(encryption_key.encode()))
+            
+            # Decrypt content
+            f = Fernet(key)
+            decrypted_data = f.decrypt(encrypted_content)
+            
+            # Parse JSON content
+            return json.loads(decrypted_data)
+            
+        except Exception as e:
+            self.logger.error(f"Package decryption failed: {e}")
+            raise ValueError(f"Package decryption failed: {e}")
+
     def _process_workflow_package(self, package_data: Dict[str, Any]):
         """
         Process workflow package from Cloud
@@ -114,39 +169,70 @@ class WorkflowExecutor:
         Args:
             package_data: Workflow package data
         """
-        workflow_id = package_data.get('workflow_id')
-        workflow = package_data.get('workflow', {})
-        screen_registry = package_data.get('screen_registry', {})
-        device_id = package_data.get('device_id')
-        
-        # Validate package
-        if not workflow_id or not workflow or not device_id:
-            self.logger.error("Invalid workflow package")
-            return
-        
-        # Save workflow data to temporary files
-        self._save_workflow_data(workflow_id, package_data)
-        
-        # Set screen registry
-        self.screen_registry.set_registry(workflow_id, screen_registry)
-        
-        # Check if device is available
-        available_devices = self.device_manager.get_available_devices()
-        if device_id not in available_devices:
-            self.logger.error(f"Device {device_id} not available")
+        try:
+            # Check if package is encrypted
+            if package_data.get('encrypted', False):
+                # Decrypt package
+                decrypted_data = self._decrypt_package(package_data)
+                workflow_id = decrypted_data.get('workflow_id')
+                workflow = decrypted_data.get('workflow', {})
+                screen_registry = decrypted_data.get('screen_registry', {})
+                device_id = decrypted_data.get('device_id')
+            else:
+                # Use unencrypted data
+                workflow_id = package_data.get('workflow_id')
+                workflow = package_data.get('workflow', {})
+                screen_registry = package_data.get('screen_registry', {})
+                device_id = package_data.get('device_id')
             
-            # Report error back to Cloud
-            self.cloud_client.send_message(Message(
-                type=MessageType.ERROR,
-                data={
-                    'workflow_id': workflow_id,
-                    'error': f"Device {device_id} not available"
-                }
-            ))
-            return
-        
-        # Start workflow execution
-        self._start_workflow(workflow_id, device_id, workflow)
+            # Validate package
+            if not workflow_id or not workflow or not device_id:
+                self.logger.error("Invalid workflow package")
+                return
+            
+            # Create secure temporary directory with restricted permissions
+            workflow_dir = self.temp_path / workflow_id
+            workflow_dir.mkdir(parents=True, exist_ok=True)
+            workflow_dir.chmod(0o700)  # Only owner can read/write/execute
+            
+            # Save workflow data to temporary files
+            self._save_workflow_data(workflow_id, {
+                'workflow': workflow,
+                'screen_registry': screen_registry,
+                'device_id': device_id
+            })
+            
+            # Set screen registry
+            self.screen_registry.set_registry(workflow_id, screen_registry)
+            
+            # Check if device is available
+            available_devices = self.device_manager.get_available_devices()
+            if device_id not in available_devices:
+                self.logger.error(f"Device {device_id} not available")
+                
+                # Report error back to Cloud
+                self.cloud_client.send_message(Message(
+                    type=MessageType.ERROR,
+                    data={
+                        'workflow_id': workflow_id,
+                        'error': f"Device {device_id} not available"
+                    }
+                ))
+                return
+            
+            # Start workflow execution
+            self._start_workflow(workflow_id, device_id, workflow)
+            
+        except Exception as e:
+            self.logger.error(f"Error processing workflow package: {e}")
+            if 'workflow_id' in locals():  # Check if workflow_id was defined
+                self.cloud_client.send_message(Message(
+                    type=MessageType.ERROR,
+                    data={
+                        'workflow_id': workflow_id,
+                        'error': str(e)
+                    }
+                ))
     
     def _save_workflow_data(self, workflow_id: str, package_data: Dict[str, Any]):
         """
@@ -241,16 +327,14 @@ class WorkflowExecutor:
             # Get sequences
             sequences = workflow.get('sequences', [])
             if not sequences:
-                self.logger.error(f"No sequences in workflow {workflow_id}")
-                self._complete_workflow(workflow_id, 'failed', "No sequences in workflow")
-                return
+                raise ValueError("No sequences in workflow")
             
             # Execute sequences
             for i, sequence in enumerate(sequences):
                 # Check if workflow stopped
                 if self._active_workflows.get(workflow_id, {}).get('status') != 'running':
                     self.logger.info(f"Workflow {workflow_id} stopped")
-                    break
+                    return
                 
                 # Update current sequence
                 with self._workflow_lock:
@@ -258,17 +342,9 @@ class WorkflowExecutor:
                     if workflow_info:
                         workflow_info['current_sequence_index'] = i
                 
-                # Execute sequence
-                success = self.sequence_executor.execute_sequence(
-                    workflow_id,
-                    device_id,
-                    sequence
-                )
-                
-                if not success:
-                    self.logger.error(f"Sequence {i} failed in workflow {workflow_id}")
-                    self._complete_workflow(workflow_id, 'failed', f"Sequence {i} failed")
-                    return
+                # Execute sequence without any local decision making
+                if not self.sequence_executor.execute_sequence(workflow_id, device_id, sequence):
+                    raise ValueError(f"Sequence {i} failed")
             
             # All sequences completed successfully
             self._complete_workflow(workflow_id, 'completed')
@@ -330,7 +406,7 @@ class WorkflowExecutor:
     
     def _cleanup_workflow(self, workflow_id: str):
         """
-        Clean up workflow temporary files
+        Clean up workflow temporary files securely
         
         Args:
             workflow_id: Workflow identifier
@@ -339,12 +415,31 @@ class WorkflowExecutor:
             # Remove screen registry
             self.screen_registry.remove_registry(workflow_id)
             
-            # Remove workflow directory
+            # Securely remove workflow directory
             workflow_dir = self.temp_path / workflow_id
             if workflow_dir.exists():
-                for file in workflow_dir.iterdir():
-                    file.unlink()
-                workflow_dir.rmdir()
+                try:
+                    # First overwrite files with random data
+                    import os
+                    for file in workflow_dir.iterdir():
+                        size = file.stat().st_size
+                        with open(file, 'wb') as f:
+                            f.write(os.urandom(size))
+                        # Sync to ensure overwrite is written to disk
+                        f.flush()
+                        os.fsync(f.fileno())
+                        # Now delete
+                        file.unlink()
+                    
+                    # Remove the directory
+                    workflow_dir.rmdir()
+                    
+                except Exception as e:
+                    self.logger.error(f"Error during secure file cleanup: {e}")
+                    # Fallback to normal deletion if secure deletion fails
+                    for file in workflow_dir.iterdir():
+                        file.unlink()
+                    workflow_dir.rmdir()
                 
         except Exception as e:
             self.logger.error(f"Error cleaning up workflow {workflow_id}: {e}")

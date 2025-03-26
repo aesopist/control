@@ -3,6 +3,7 @@
 Based on our discussions and the package structure we've defined, here's a comprehensive file structure for the Control component:
 
 ```
+```
 control/
 ├── README.md                   # Documentation
 ├── requirements.txt            # Python dependencies
@@ -12,49 +13,38 @@ control/
 │   ├── __init__.py             # Package initialization
 │   ├── __main__.py             # Entry point
 │   ├── config.py               # Configuration management
-│   ├── device_manager.py       # Device connection management
+│   ├── device_manager/         # Device connection management
 │   │   ├── __init__.py
-│   │   ├── connection.py       # ADB connection handling
+│   │   ├── connection.py       # Device connection handling
 │   │   ├── command.py          # Device command execution
 │   │   └── monitor.py          # Connection monitoring
-│   ├── actions/                # Action execution
-│   │   ├── __init__.py
-│   │   ├── base.py             # Base action class
-│   │   ├── tap.py              # Tap execution
-│   │   ├── swipe.py            # Swipe execution
-│   │   ├── text.py             # Text input (keyboard)
-│   │   └── special.py          # Special action handling
-│   ├── keyboard/               # Keyboard integration
-│   │   ├── __init__.py
-│   │   ├── client.py           # Keyboard client
-│   │   └── sequence.py         # Sequence execution
 │   ├── verification/           # Screen verification
 │   │   ├── __init__.py
-│   │   ├── verifier.py         # Main verification logic
+│   │   ├── verifier.py         # Screen verification logic
 │   │   ├── comparator.py       # Image comparison
-│   │   └── registry.py         # Local registry management
+│   │   └── registry.py         # Screen registry management
 │   ├── cloud/                  # Cloud communication
 │   │   ├── __init__.py
 │   │   ├── client.py           # WebSocket client
-│   │   ├── protocol.py         # Message protocol
+│   │   ├── protocol.py         # Message protocol definitions
 │   │   └── binary.py           # Binary data handling
 │   ├── workflows/              # Workflow execution
 │   │   ├── __init__.py
 │   │   ├── executor.py         # Workflow execution
 │   │   ├── sequence.py         # Sequence handling
 │   │   └── step.py             # Step execution
-│   ├── sandbox/                # Code execution sandbox
+│   ├── sandbox/                # Secure code execution
 │   │   ├── __init__.py
-│   │   ├── runner.py           # Code execution
-│   │   └── security.py         # Sandbox security
+│   │   └── runner.py           # Special sequence and recovery 
+│   ├── keyboard/               # Keyboard integration
+│   │   ├── __init__.py
+│   │   ├── client.py           # Keyboard client
+│   │   └── sequence.py         # Keyboard sequence builder
 │   └── utils/                  # Utilities
 │       ├── __init__.py
-│       ├── logging.py          # Logging configuration
-│       ├── crypto.py           # Encryption/decryption
-│       └── files.py            # File handling
+│       └── logging.py          # Logging utilities
 ├── scripts/                    # Installation scripts
 │   ├── install.sh              # Main installation script
-│   ├── update.sh               # Update script
 │   └── download_platform_tools.sh # ADB download script
 ├── config/                     # Configuration files
 │   ├── default_config.json     # Default configuration
@@ -64,38 +54,51 @@ control/
 └── temp/                       # Temporary file storage
     ├── workflows/              # Workflow temporary files
     ├── screenshots/            # Screenshot temporary files
-    └── media/                  # Media temporary files
+    └── sandbox/                # Sandbox temporary files
 ```
 
 ## Key Components
 
-### device_manager
-Handles all device connection management, command execution, and connection monitoring. The separation into multiple files keeps concerns separated while maintaining a unified interface.
+### Device Manager
+Handles device connections, command execution, and monitoring device connectivity. This includes:
+- Discovering and connecting to devices via ADB
+- Executing commands on devices (tap, swipe, key events)
+- Monitoring device connectivity and handling reconnections
+- Capturing screenshots from devices
 
-### actions
-Contains modules for executing different types of actions on devices. Each action type has its own module but follows a common interface defined in base.py.
+### Screen Verification
+Handles verification of device screens against reference images:
+- Comparing captured screenshots to reference images
+- Identifying screen state based on validation regions
+- Finding best match when expected screen isn't encountered
+- Reporting unknown screens to Cloud for further processing
 
-### keyboard
-Manages communication with the custom keyboard app, including sending typing sequences and handling keyboard responses.
+### Cloud Client
+Handles WebSocket communication with Cloud relay:
+- Maintaining persistent WebSocket connection
+- Handling protocol message serialization/deserialization
+- Managing binary data transfers (screenshots, media files)
+- Reconnecting automatically when connection is lost
 
-### verification
-Handles screen verification against references provided in workflow packages.
+### Workflow Executor
+Manages execution of workflows received from Cloud:
+- Processing workflow packages
+- Executing sequences and steps on devices
+- Verifying screen states during execution
+- Reporting execution progress and results back to Cloud
 
-### cloud
-Manages WebSocket communication with Cloud, including message handling, reconnection logic, and binary data transfer.
+### Sandbox Runner
+Provides secure execution environment for injected code:
+- Running special sequences in isolated environment
+- Executing recovery scripts with proper security boundaries
+- Managing execution timeout and resource constraints
+- Cleaning up after execution completes
 
-### workflows
-Executes workflows received from Cloud, managing sequences, steps, and reporting results.
-
-### sandbox
-Provides a secure environment for executing injected code (special sequences and recovery scripts).
-
-### utils
-Contains utility functions used across the codebase, including logging, encryption, and file handling.
-
-This structure keeps the code modular and maintainable while supporting all the functionality we've defined for Control.
-
-Let's define a clear package structure for communications going into Control. This structure needs to be comprehensive enough to handle all types of operations while remaining as simple as possible.
+### Keyboard Client
+Handles communication with the custom keyboard app:
+- Sending text input commands
+- Managing clipboard operations
+- Executing keyboard sequences (typing, dictation, autofill)
 
 # Control Component Package Structures
 

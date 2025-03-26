@@ -203,12 +203,46 @@ class CloudClient:
                 break
     
     async def _handle_binary_message(self, data: bytes):
-        """Handle binary message from Cloud"""
+        """
+        Handle binary message from Cloud
+        
+        Processes incoming binary data, handling both single messages and chunked transfers.
+        For chunked transfers, maintains state until all chunks are received.
+        """
         try:
             # Process with binary transfer handler
             package_id, content_id, content = self.binary_transfer.process_binary_message(data)
             
-            # Notify callbacks
+            # Check if this is part of a chunked transfer
+            if "_" in content_id:
+                # Extract metadata from content_id
+                base_content_id, chunk_num = content_id.rsplit("_", 1)
+                total_chunks = int(self.config.get(f'transfer.{package_id}.total_chunks', 0))
+                
+                if total_chunks > 0:
+                    # Attempt to reassemble chunks
+                    complete_content = self.binary_transfer.reassemble_chunks(
+                        package_id, content_id, content, total_chunks
+                    )
+                    
+                    if complete_content is not None:
+                        # All chunks received, notify callbacks with complete content
+                        for callback in self._message_callbacks[MessageType.BINARY]:
+                            try:
+                                callback(Message(
+                                    type=MessageType.BINARY,
+                                    data={
+                                        'package_id': package_id,
+                                        'content_id': base_content_id,
+                                        'content': complete_content,
+                                        'is_complete': True
+                                    }
+                                ))
+                            except Exception as e:
+                                self.logger.error(f"Binary callback error: {e}")
+                    return
+            
+            # Single message or unhandled chunk, notify callbacks
             for callback in self._message_callbacks[MessageType.BINARY]:
                 try:
                     callback(Message(
@@ -216,7 +250,8 @@ class CloudClient:
                         data={
                             'package_id': package_id,
                             'content_id': content_id,
-                            'content': content
+                            'content': content,
+                            'is_complete': "_" not in content_id
                         }
                     ))
                 except Exception as e:
@@ -224,6 +259,10 @@ class CloudClient:
             
         except Exception as e:
             self.logger.error(f"Error processing binary message: {e}")
+            # Clean up any partial transfers on error
+            if "_" in content_id:
+                base_content_id = content_id.rsplit("_", 1)[0]
+                self.binary_transfer.cleanup_fragments(package_id, base_content_id)
     
     async def _process_outgoing(self):
         """Process outgoing messages to Cloud"""
@@ -294,8 +333,9 @@ class CloudClient:
         
         return None
     
-    def send_binary(self, package_id: str, content_id: str, 
-                   data: bytes, timeout: Optional[int] = None) -> bool:
+    def send_binary(self, package_id: str, content_id: str,
+                   data: bytes, timeout: Optional[int] = None,
+                   chunk_size: Optional[int] = None) -> bool:
         """
         Send binary data to Cloud
         
@@ -304,6 +344,7 @@ class CloudClient:
             content_id: Content identifier within package
             data: Binary data to send
             timeout: Optional timeout for acknowledgment
+            chunk_size: Optional custom chunk size for large transfers
             
         Returns:
             True if successful, False otherwise
@@ -313,18 +354,41 @@ class CloudClient:
             return False
         
         try:
-            # Format binary message
-            binary_message = self.binary_transfer.create_binary_message(
-                package_id, content_id, data
-            )
-            
-            # Add to outgoing queue
-            self._outgoing_queue.put(binary_message)
+            # Check if we need to chunk the data
+            if chunk_size or len(data) > self.binary_transfer.MAX_CHUNK_SIZE:
+                if chunk_size:
+                    # Temporarily override chunk size
+                    original_chunk_size = self.binary_transfer.MAX_CHUNK_SIZE
+                    self.binary_transfer.MAX_CHUNK_SIZE = chunk_size
+                
+                try:
+                    # Split into chunks
+                    chunks = self.binary_transfer.chunk_binary_data(package_id, content_id, data)
+                    
+                    # Store total chunks in config for reassembly
+                    self.config.set(f'transfer.{package_id}.total_chunks', len(chunks))
+                    
+                    # Send each chunk
+                    for chunk in chunks:
+                        self._outgoing_queue.put(chunk)
+                        
+                finally:
+                    # Restore original chunk size if changed
+                    if chunk_size:
+                        self.binary_transfer.MAX_CHUNK_SIZE = original_chunk_size
+            else:
+                # Send as single message
+                binary_message = self.binary_transfer.create_binary_message(
+                    package_id, content_id, data
+                )
+                self._outgoing_queue.put(binary_message)
             
             return True
             
         except Exception as e:
             self.logger.error(f"Error sending binary data: {e}")
+            # Clean up any partial state
+            self.binary_transfer.cleanup_fragments(package_id, content_id)
             return False
     
     def register_callback(self, msg_type: MessageType, callback: Callable[[Message], None]):
