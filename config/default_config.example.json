@@ -1,0 +1,129 @@
+{
+    "version": "8.0.0",
+    "cloud": {
+        "url": "wss://cloud.example.com/control",
+        "ping_interval": 30,
+        "reconnect_interval": 5,
+        "connection_timeout": 30
+    },
+    "device": {
+        "check_interval": 5,
+        "reconnect_attempts": 3,
+        "command_timeout": 30
+    },
+    "workflow": {
+        "verification_timeout": 10,
+        "action_delay_range": [0.5, 2.0],
+        "max_retries": 3,
+        "retry_delay": 5
+    },
+    "recovery": {
+        "max_attempts": 3,
+        "delay_between_attempts": 5,
+        "timeout": 300
+    },
+    "screen": {
+        "match_threshold": 0.95,
+        "cache_duration": 1.0
+    },
+    "debug": {
+        "save_verification_images": false,
+        "save_recovery_scripts": false,
+        "log_level": "INFO"
+    },
+    "devices": {
+        "R3CR40KCA8F": {
+            "friendly_name": "phone1",
+            "ip_address": "192.168.1.201",
+            "adb_port": 5555,
+            "keyboard_port": 8080
+        },
+        "R5CR1296QHR": {
+            "friendly_name": "phone2",
+            "ip_address": "192.168.1.202",
+            "adb_port": 5555,
+            "keyboard_port": 8080
+        }
+    },
+    "states": {
+        "tiktok_home": {
+            "name": "TikTok Home Screen",
+            "description": "Main feed screen of TikTok",
+            "reference_path": "states/tiktok/home",
+            "validation_regions": [
+                {
+                    "name": "home_icon",
+                    "x1": 50,
+                    "y1": 120,
+                    "x2": 100,
+                    "y2": 170
+                },
+                {
+                    "name": "feed_area",
+                    "x1": 0,
+                    "y1": 200,
+                    "x2": 1080,
+                    "y2": 2000
+                }
+            ]
+        },
+        "tiktok_upload": {
+            "name": "TikTok Upload Screen",
+            "description": "Video upload screen",
+            "reference_path": "states/tiktok/upload",
+            "validation_regions": [
+                {
+                    "name": "upload_button",
+                    "x1": 500,
+                    "y1": 2200,
+                    "x2": 600,
+                    "y2": 2300
+                }
+            ]
+        }
+    },
+    "interrupts": {
+        "tiktok_update": {
+            "name": "TikTok Update Popup",
+            "description": "App update notification popup",
+            "reference_path": "interrupts/tiktok/update",
+            "validation_regions": [
+                {
+                    "name": "update_text",
+                    "x1": 200,
+                    "y1": 800,
+                    "x2": 880,
+                    "y2": 900
+                }
+            ],
+            "actions": [
+                {
+                    "name": "dismiss",
+                    "type": "tap",
+                    "coordinates": [540, 1200]
+                }
+            ]
+        },
+        "system_update": {
+            "name": "System Update",
+            "description": "System-level update notification",
+            "reference_path": "interrupts/system/update",
+            "validation_regions": [
+                {
+                    "name": "update_title",
+                    "x1": 100,
+                    "y1": 100,
+                    "x2": 980,
+                    "y2": 200
+                }
+            ],
+            "actions": [
+                {
+                    "name": "dismiss",
+                    "type": "tap",
+                    "coordinates": [980, 50]
+                }
+            ]
+        }
+    }
+}
