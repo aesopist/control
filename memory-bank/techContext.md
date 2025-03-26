@@ -10,11 +10,6 @@
 - **OpenCV/PIL**: For image processing and screen verification
 - **SQLite**: For local caching and temporary storage
 
-### External Services
-
-- **OpenAI API**: Used for FarmCLI recovery scripts (ChatGPT)
-- **Google AI API**: Used for element identification (Gemini)
-
 ### Development Tools
 
 - **Git**: Version control
