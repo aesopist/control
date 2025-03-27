@@ -16,15 +16,20 @@ from pathlib import Path
 import struct
 from typing import Dict, Any, Optional, List, Tuple
 import base64
+from datetime import datetime
 
 # Configure logging
-log_file = "compute_simulator.log"
+log_dir = Path("logs/compute_simulator")
+log_dir.mkdir(parents=True, exist_ok=True)
+
+current_time = datetime.now()
+log_file = log_dir / f"{current_time.strftime('%B_%d_%Y_%H%M')}.log"
+
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(log_file),
-        logging.StreamHandler()
+        logging.FileHandler(log_file)
     ]
 )
 
@@ -334,11 +339,20 @@ async def send_live_command(device_id: str, command_type: str = "tap",
         # Create command package
         command = create_live_command(device_id, command_type, coordinates)
         
-        # Send to client
-        await client_socket.send(json.dumps({
+        # Log the full command JSON
+        logger.debug(f"Full command JSON: {json.dumps(command, indent=2)}")
+        
+        # Create the message to send
+        message = {
             "type": "live_command",
             "data": command
-        }))
+        }
+        
+        # Log the full message
+        logger.debug(f"Sending full message: {json.dumps(message, indent=2)}")
+        
+        # Send to client
+        await client_socket.send(json.dumps(message))
         
         logger.info(f"Sent {command_type} command to device {device_id}")
         
@@ -436,12 +450,21 @@ async def interactive_console():
                 
                 if clients:
                     client_socket = next(iter(clients.values()))
-                print(f"Sending swipe command to device {device_id} from ({start_x}, {start_y}) to ({end_x}, {end_y})")
-                logger.debug(f"Sending swipe command to device {device_id} from ({start_x}, {start_y}) to ({end_x}, {end_y})")
-                await client_socket.send(json.dumps({
+                
+                # Log the full command JSON
+                logger.debug(f"Full swipe command JSON: {json.dumps(command, indent=2)}")
+
+                message = {
                     "type": "live_command",
                     "data": command
-                }))
+                }
+                    
+                # Log the full message
+                logger.debug(f"Sending full message: {json.dumps(message, indent=2)}")
+
+                print(f"Sending swipe command to device {device_id} from ({start_x}, {start_y}) to ({end_x}, {end_y})")
+                logger.debug(f"Sending swipe command to device {device_id} from ({start_x}, {start_y}) to ({end_x}, {end_y})")
+                await client_socket.send(json.dumps(message))
                 logger.info(f"Sent swipe command to device {device_id}")
                 
             elif command_type == "text":
@@ -458,12 +481,21 @@ async def interactive_console():
                 
                 if clients:
                     client_socket = next(iter(clients.values()))
-                print(f"Sending text command to device {device_id} with text: {text}")
-                logger.debug(f"Sending text command to device {device_id} with text: {text}")
-                await client_socket.send(json.dumps({
+                
+                # Log the full command JSON
+                logger.debug(f"Full text command JSON: {json.dumps(command, indent=2)}")
+
+                message = {
                     "type": "live_command",
                     "data": command
-                }))
+                }
+
+                # Log the full message
+                logger.debug(f"Sending full message: {json.dumps(message, indent=2)}")
+
+                print(f"Sending text command to device {device_id} with text: {text}")
+                logger.debug(f"Sending text command to device {device_id} with text: {text}")
+                await client_socket.send(json.dumps(message))
                 logger.info(f"Sent text command to device {device_id}")
             
         elif choice == "3":

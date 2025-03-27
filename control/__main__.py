@@ -128,6 +128,12 @@ def main():
         # Initialize cloud client
         cloud_client = CloudClient()
         
+        # Initialize live command handler and register with cloud client
+        from control.cloud.protocol import MessageType
+        from control.live.handler import LiveCommandHandler
+        live_handler = LiveCommandHandler()
+        cloud_client.register_callback(MessageType.LIVE_COMMAND, live_handler.handle_command)
+        
         # Initialize workflow executor (which initializes other components)
         workflow_executor = WorkflowExecutor()
         
