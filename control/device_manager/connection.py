@@ -41,9 +41,13 @@ class DeviceConnection:
     
     def _start_adb_server(self):
         """Start ADB server if not running"""
+        if hasattr(self, "_adb_server_started") and self._adb_server_started:
+            return
         try:
-            subprocess.run([str(self.adb_path), 'start-server'], check=True, capture_output=True)
+            # Use shell=True to avoid the WinError 2 issue
+            subprocess.run(f'"{self.adb_path}" start-server', shell=True, check=True, capture_output=True)
             self.logger.info("ADB server started")
+            self._adb_server_started = True
         except subprocess.CalledProcessError as e:
             self.logger.error(f"Failed to start ADB server: {e}")
             raise Exception(f"Failed to start ADB server: {e}")

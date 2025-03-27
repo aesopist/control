@@ -49,8 +49,8 @@ class ScreenVerifier:
         # Initialize image comparator
         self.comparator = ImageComparator()
         
-        # Default settings
-        self.match_threshold = self.config.get('screen.match_threshold', 0.95)
+        # Default settings: use MSE threshold (lower is better). 1000 is the proven acceptable value.
+        self.match_threshold = self.config.get('screen.mse_threshold', 1000)
         self.verification_timeout = self.config.get('workflow.verification_timeout', 10)
         
         self._initialized = True
@@ -106,9 +106,9 @@ class ScreenVerifier:
                 )
                 region_scores.append(region_score)
             
-            # Use minimum score as overall match
-            match_score = min(region_scores) if region_scores else 0.0
-            matches = match_score >= self.match_threshold
+            # Use maximum error (worst matching region) as overall error
+            match_score = max(region_scores) if region_scores else float("inf")
+            matches = match_score <= self.match_threshold
             
             return matches, match_score, screenshot_data
             

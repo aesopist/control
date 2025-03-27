@@ -1,0 +1,154 @@
+{
+    "version": "1.0.0",
+    "devices": {
+        "R3CR40KCA8F": {
+            "device_id": "R3CR40KCA8F",
+            "friendly_name": "phone1",
+            "status": "active",
+            "tiktok_installed": "yes",
+            "ip_address": "192.168.1.201"
+        },
+        "R5CR1296QHR": {
+            "device_id": "R5CR1296QHR",
+            "friendly_name": "phone2",
+            "status": "active",
+            "tiktok_installed": "yes",
+            "ip_address": "192.168.1.202"
+        },
+        "R5CR12FQCXD": {
+            "device_id": "R5CR12FQCXD",
+            "friendly_name": "phone3",
+            "status": "active",
+            "tiktok_installed": "yes",
+            "active_account": "JamesWilson467",
+            "ip_address": "192.168.1.203"
+        },
+        "R5CR30857FV": {
+            "device_id": "R5CR30857FV",
+            "friendly_name": "phone4",
+            "status": "active",
+            "tiktok_installed": "yes",
+            "ip_address": "192.168.1.204"
+        },
+        "R5CR30K10MF": {
+            "device_id": "R5CR30K10MF",
+            "friendly_name": "phone5",
+            "status": "active",
+            "tiktok_installed": "yes",
+            "ip_address": "192.168.1.205"
+        },
+        "R5CR30MA1AB": {
+            "device_id": "R5CR30MA1AB",
+            "friendly_name": "phone6",
+            "status": "active",
+            "tiktok_installed": "yes",
+            "ip_address": "192.168.1.206"
+        },
+        "R5CR60ZWY0T": {
+            "device_id": "R5CR60ZWY0T",
+            "friendly_name": "phone7",
+            "status": "active",
+            "tiktok_installed": "yes",
+            "ip_address": "192.168.1.207"
+        },
+        "R5CR71E02DR": {
+            "device_id": "R5CR71E02DR",
+            "friendly_name": "phone8",
+            "status": "active",
+            "tiktok_installed": "yes",
+            "ip_address": "192.168.1.208"
+        },
+        "R5CRC21J6LN": {
+            "device_id": "R5CRC21J6LN",
+            "friendly_name": "phone9",
+            "status": "active",
+            "tiktok_installed": "yes",
+            "ip_address": "192.168.1.209"
+        },
+        "R5CR51424XR": {
+            "device_id": "R5CR51424XR",
+            "friendly_name": "phone10",
+            "status": "active",
+            "tiktok_installed": "yes",
+            "ip_address": "192.168.1.210"
+        },
+        "R5CR5142JPA": {
+            "device_id": "R5CR5142JPA",
+            "friendly_name": "phone11",
+            "status": "active",
+            "tiktok_installed": "yes",
+            "ip_address": "192.168.1.211"
+        },
+        "R5CR60KR2PB": {
+            "device_id": "R5CR60KR2PB",
+            "friendly_name": "phone12",
+            "status": "active",
+            "tiktok_installed": "yes",
+            "ip_address": "192.168.1.212"
+        },
+        "R5CRA1YFD6W": {
+            "device_id": "R5CRA1YFD6W",
+            "friendly_name": "phone13",
+            "status": "active",
+            "tiktok_installed": "yes",
+            "ip_address": "192.168.1.213"
+        },
+        "R5CRB1WD7QJ": {
+            "device_id": "R5CRB1WD7QJ",
+            "friendly_name": "phone14",
+            "status": "active",
+            "tiktok_installed": "yes",
+            "ip_address": "192.168.1.214"
+        },
+        "R5CRB2DWD1V": {
+            "device_id": "R5CRB2DWD1V",
+            "friendly_name": "phone15",
+            "status": "active",
+            "tiktok_installed": "yes",
+            "ip_address": "192.168.1.215"
+        }
+    },
+    "last_phone_number": 15,
+    "device_health": {
+        "forced_logins": {
+            "R5CR51424XR": [],
+            "R5CR5142JPA": [],
+            "R5CR60KR2PB": [],
+            "R5CRA1YFD6W": [],
+            "R5CRB1WD7QJ": [],
+            "R5CRB2DWD1V": []
+        },
+        "captchas": {
+            "R5CR51424XR": [],
+            "R5CR5142JPA": [],
+            "R5CR60KR2PB": [],
+            "R5CRA1YFD6W": [],
+            "R5CRB1WD7QJ": [],
+            "R5CRB2DWD1V": []
+        },
+        "unknown_states": {
+            "R5CR51424XR": [],
+            "R5CR5142JPA": [],
+            "R5CR60KR2PB": [],
+            "R5CRA1YFD6W": [],
+            "R5CRB1WD7QJ": [],
+            "R5CRB2DWD1V": []
+        },
+        "errors": {
+            "R5CR51424XR": [],
+            "R5CR5142JPA": [],
+            "R5CR60KR2PB": [],
+            "R5CRA1YFD6W": [],
+            "R5CRB1WD7QJ": [],
+            "R5CRB2DWD1V": []
+        },
+        "last_checked": {
+            "R5CR51424XR": "2024-12-23T13:32:42.733658",
+            "R5CR5142JPA": "2024-12-23T13:33:52.193291",
+            "R5CR60KR2PB": "2024-12-23T13:35:14.846605",
+            "R5CRA1YFD6W": "2024-12-23T13:36:54.413244",
+            "R5CRB1WD7QJ": "2024-12-23T13:38:49.009355",
+            "R5CRB2DWD1V": "2024-12-23T13:39:40.958242"
+        }
+    }
+}

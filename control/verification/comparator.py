@@ -4,6 +4,7 @@ Handles comparing regions of images for screen verification.
 """
 
 import logging
+import time
 from pathlib import Path
 from typing import Dict, Tuple, Optional, Union
 
@@ -75,17 +76,26 @@ class ImageComparator:
             x2 = max(x1 + 1, min(x2, width))
             y2 = max(y1 + 1, min(y2, height))
             
+            # Debug: print image dimensions and region extraction coordinates
+            print(f"[DEBUG] Reference path: {ref_path}")
+            print(f"[DEBUG] Current image shape: {current_img.shape}, reference image shape: {ref_img.shape}")
+            print(f"[DEBUG] Extracting region with coordinates: x1={x1}, y1={y1}, x2={x2}, y2={y2}")
+            
             # Extract regions
             current_region = current_img[y1:y2, x1:x2]
             ref_region = ref_img[y1:y2, x1:x2]
+            
+            # Debug: print extracted region shapes
+            print(f"[DEBUG] Extracted current_region shape: {current_region.shape}, ref_region shape: {ref_region.shape}")
             
             # Convert to grayscale for comparison
             current_gray = cv2.cvtColor(current_region, cv2.COLOR_BGR2GRAY)
             ref_gray = cv2.cvtColor(ref_region, cv2.COLOR_BGR2GRAY)
             
-            # Compare regions using normalized correlation coefficient
-            result = cv2.matchTemplate(current_gray, ref_gray, cv2.TM_CCOEFF_NORMED)
-            match_score = float(result[0][0])
+            # Compute Mean Squared Error (MSE) between the regions
+            mse = float(np.mean((current_gray.astype("float32") - ref_gray.astype("float32")) ** 2))
+            print(f"[DEBUG] Computed MSE for region: {mse}")
+            match_score = mse
             
             # Debug output if enabled
             if self.debug_mode:

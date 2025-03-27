@@ -17,7 +17,7 @@ Binary messages include a header with the following fields:
 
 **File Format Requirements:**  
 Screenshots and image files are transmitted in PNG format, and videos in MP4 format. This avoids base64 encoding because:
-- Converting to base64 increases file size significantly and adds conversion overhead.
+- Converting to base64 adds conversion overhead.
 - All key external components (APIs and services) expect data in actual file formats.
 - Core modules that process images require them in PNG format for compatibility with external APIs.
 
