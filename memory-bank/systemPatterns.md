@@ -18,6 +18,10 @@ control/
 │   │   ├── connection.py       # Device connection handling
 │   │   ├── command.py          # Device command execution
 │   │   └── monitor.py          # Connection monitoring
+│   ├── live/                   # Live command handling
+│   │   ├── __init__.py
+│   │   ├── handler.py          # Live command handler
+│   │   └── commands.py         # Command definitions
 │   ├── verification/           # Screen verification
 │   │   ├── __init__.py
 │   │   ├── verifier.py         # Screen verification logic
@@ -208,10 +212,39 @@ For direct commands in live mode:
   "package_id": "unique_identifier",
   "command": {
     "command_id": "command_unique_id",
-    "type": "tap",
+    // Basic device commands:
+    "type": "tap|swipe|wake|sleep|keyevent|app_launch|keyboard_sequence|special_sequence",
+    
+    // For tap:
     "coordinates": [540, 960],
-    "verify_screen": false,
-    "return_screenshot": true
+    
+    // For swipe:
+    "start_coordinates": [540, 1200],
+    "end_coordinates": [540, 600],
+    "duration": 300,
+    
+    // For keyevent:
+    "keycode": 66,  // Enter key
+    
+    // For app_launch:
+    "package": "com.example.app",
+    
+    // For keyboard_sequence:
+    "sequence": [
+      {"action": "type", "text": "Hello", "delay_after": 0.2},
+      {"action": "delay", "duration": 0.5},
+      {"action": "type", "text": "world!", "delay_after": 0.2}
+    ],
+    
+    // For special_sequence:
+    "code": "... Python code to execute ...",
+    "parameters": {
+      "param1": "value1",
+      "param2": "value2"
+    },
+
+    // Common options:
+    "return_screenshot": true  // Always returns screenshot after execution
   },
   "device_id": "192.168.1.101:5555",
   "session_id": "live_session_id",

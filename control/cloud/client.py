@@ -9,6 +9,7 @@ import asyncio
 import websockets
 import threading
 import time
+from datetime import datetime
 import uuid
 from typing import Dict, List, Optional, Any, Callable, Union
 from queue import Queue
@@ -160,6 +161,15 @@ class CloudClient:
                 # Wait for message
                 message = await self._ws.recv()
                 
+                # Send receipt confirmation
+                await self._ws.send(json.dumps({
+                    "type": "receipt",
+                    "data": {
+                        "timestamp": time.time(),
+                        "stage": "received"
+                    }
+                }))
+                
                 # Check if binary message
                 if isinstance(message, bytes):
                     # Handle binary message
@@ -167,9 +177,41 @@ class CloudClient:
                     continue
                 
                 # Parse JSON message
-                msg_data = json.loads(message)
+                try:
+                    msg_data = json.loads(message)
+                    
+                    # Log the full received message for debugging
+                    self.logger.debug(f"Received message: {json.dumps(msg_data, indent=2)}")
+                    
+                    # Send parse success confirmation
+                    await self._ws.send(json.dumps({
+                        "type": "receipt",
+                        "data": {
+                            "timestamp": time.time(),
+                            "stage": "parsed",
+                            "message_type": msg_data.get('type')
+                        }
+                    }))
+                except json.JSONDecodeError as e:
+                    error = {
+                        "type": "error",
+                        "data": {
+                            "stage": "parse",
+                            "error": "json_decode_error",
+                            "details": str(e),
+                            "raw_message": message[:100]  # First 100 chars for context
+                        }
+                    }
+                    await self._ws.send(json.dumps(error))
+                    continue
                 
-                # Create Message object
+                # Extra logging for live commands
+                if msg_data.get('type') == 'live_command':
+                    self.logger.info(f"Received live command: {msg_data.get('data', {}).get('package_type')} "
+                                   f"for device: {msg_data.get('data', {}).get('device_id')}")
+                    self.logger.debug(f"Command details: {json.dumps(msg_data.get('data', {}).get('command', {}), indent=2)}")
+                
+                # Create Message object and validate type
                 try:
                     msg_type = MessageType(msg_data.get('type'))
                     msg = Message(
@@ -178,8 +220,27 @@ class CloudClient:
                         id=msg_data.get('id'),
                         device_id=msg_data.get('device_id')
                     )
+                    
+                    # Send validation success confirmation
+                    await self._ws.send(json.dumps({
+                        "type": "receipt",
+                        "data": {
+                            "timestamp": time.time(),
+                            "stage": "validated",
+                            "message_type": msg_type.value
+                        }
+                    }))
                 except ValueError:
-                    self.logger.error(f"Unknown message type: {msg_data.get('type')}")
+                    error = {
+                        "type": "error",
+                        "data": {
+                            "stage": "validation",
+                            "error": "unknown_message_type",
+                            "received_type": msg_data.get('type'),
+                            "valid_types": [t.value for t in MessageType]
+                        }
+                    }
+                    await self._ws.send(json.dumps(error))
                     continue
                 
                 # Handle pong responses
@@ -195,8 +256,31 @@ class CloudClient:
                 for callback in self._message_callbacks[msg_type]:
                     try:
                         callback(msg)
+                        # Send handler success confirmation
+                        await self._ws.send(json.dumps({
+                            "type": "receipt",
+                            "data": {
+                                "timestamp": time.time(),
+                                "stage": "handled",
+                                "handler": callback.__qualname__,
+                                "message_type": msg_type.value,
+                                "message_id": msg.id
+                            }
+                        }))
                     except Exception as e:
-                        self.logger.error(f"Callback error: {e}")
+                        error = {
+                            "type": "error",
+                            "data": {
+                                "stage": "handler",
+                                "error": "handler_exception",
+                                "handler": callback.__qualname__,
+                                "message_type": msg_type.value,
+                                "message_id": msg.id,
+                                "details": str(e)
+                            }
+                        }
+                        await self._ws.send(json.dumps(error))
+                        self.logger.error(f"Callback error in {callback.__qualname__}: {e}")
                 
             except Exception as e:
                 self.logger.error(f"Error processing incoming message: {e}")
@@ -210,8 +294,43 @@ class CloudClient:
         For chunked transfers, maintains state until all chunks are received.
         """
         try:
+            # Send binary receipt confirmation
+            await self._ws.send(json.dumps({
+                "type": "receipt",
+                "data": {
+                    "timestamp": time.time(),
+                    "stage": "binary_received",
+                    "size": len(data)
+                }
+            }))
+            
             # Process with binary transfer handler
-            package_id, content_id, content = self.binary_transfer.process_binary_message(data)
+            try:
+                package_id, content_id, content = self.binary_transfer.process_binary_message(data)
+                
+                # Send binary parse success
+                await self._ws.send(json.dumps({
+                    "type": "receipt",
+                    "data": {
+                        "timestamp": time.time(),
+                        "stage": "binary_parsed",
+                        "package_id": package_id,
+                        "content_id": content_id,
+                        "size": len(content)
+                    }
+                }))
+                
+            except Exception as e:
+                error = {
+                    "type": "error",
+                    "data": {
+                        "stage": "binary_parse",
+                        "error": "binary_decode_error",
+                        "details": str(e)
+                    }
+                }
+                await self._ws.send(json.dumps(error))
+                raise
             
             # Check if this is part of a chunked transfer
             if "_" in content_id:
@@ -238,8 +357,31 @@ class CloudClient:
                                         'is_complete': True
                                     }
                                 ))
+                                # Send binary callback success
+                                await self._ws.send(json.dumps({
+                                    "type": "receipt",
+                                    "data": {
+                                        "timestamp": time.time(),
+                                        "stage": "binary_handled",
+                                        "handler": callback.__qualname__,
+                                        "package_id": package_id,
+                                        "content_id": base_content_id
+                                    }
+                                }))
                             except Exception as e:
-                                self.logger.error(f"Binary callback error: {e}")
+                                error = {
+                                    "type": "error",
+                                    "data": {
+                                        "stage": "binary_handler",
+                                        "error": "handler_exception",
+                                        "handler": callback.__qualname__,
+                                        "package_id": package_id,
+                                        "content_id": base_content_id,
+                                        "details": str(e)
+                                    }
+                                }
+                                await self._ws.send(json.dumps(error))
+                                self.logger.error(f"Binary callback error in {callback.__qualname__}: {e}")
                     return
             
             # Single message or unhandled chunk, notify callbacks
@@ -254,15 +396,51 @@ class CloudClient:
                             'is_complete': "_" not in content_id
                         }
                     ))
+                    # Send binary callback success
+                    await self._ws.send(json.dumps({
+                        "type": "receipt",
+                        "data": {
+                            "timestamp": time.time(),
+                            "stage": "binary_handled",
+                            "handler": callback.__qualname__,
+                            "package_id": package_id,
+                            "content_id": content_id
+                        }
+                    }))
                 except Exception as e:
-                    self.logger.error(f"Binary callback error: {e}")
+                    error = {
+                        "type": "error",
+                        "data": {
+                            "stage": "binary_handler",
+                            "error": "handler_exception",
+                            "handler": callback.__qualname__,
+                            "package_id": package_id,
+                            "content_id": content_id,
+                            "details": str(e)
+                        }
+                    }
+                    await self._ws.send(json.dumps(error))
+                    self.logger.error(f"Binary callback error in {callback.__qualname__}: {e}")
             
         except Exception as e:
+            error = {
+                "type": "error",
+                "data": {
+                    "stage": "binary_processing",
+                    "error": "binary_processing_error",
+                    "details": str(e)
+                }
+            }
+            await self._ws.send(json.dumps(error))
             self.logger.error(f"Error processing binary message: {e}")
+            
             # Clean up any partial transfers on error
-            if "_" in content_id:
-                base_content_id = content_id.rsplit("_", 1)[0]
-                self.binary_transfer.cleanup_fragments(package_id, base_content_id)
+            try:
+                if "_" in content_id:
+                    base_content_id = content_id.rsplit("_", 1)[0]
+                    self.binary_transfer.cleanup_fragments(package_id, base_content_id)
+            except Exception as cleanup_error:
+                self.logger.error(f"Error during cleanup: {cleanup_error}")
     
     async def _process_outgoing(self):
         """Process outgoing messages to Cloud"""

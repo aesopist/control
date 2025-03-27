@@ -27,17 +27,23 @@ Control's main responsibilities include:
    - Executing sequences and individual steps on devices
    - Reporting execution progress and results
 
-3. **Screen Verification**
+3. **Live Command Execution**
+   - Executing immediate device commands (tap, swipe, wake, sleep)
+   - Running app launch and keyboard sequences
+   - Running special sequences in sandbox
+   - Always capturing and returning screenshots after execution
+
+4. **Screen Verification**
    - Capturing screenshots from devices
    - Comparing screenshots against reference images
    - Identifying unknown screens and reporting them to Cloud
 
-4. **Special Sequence Handling**
+5. **Special Sequence Handling**
    - Executing injected code for complex operations securely
    - Providing environment for special sequences and recovery scripts
    - Isolating execution to prevent security issues
 
-5. **Package Management**
+6. **Package Management**
    - Receiving encrypted packages from Cloud
    - Extracting and managing workflow data and media files
    - Cleaning up temporary files after execution

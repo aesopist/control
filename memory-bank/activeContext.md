@@ -150,6 +150,24 @@ The Control component has progressed from planning to initial implementation. We
 - Defined clear component boundaries
 - Identified key areas for immediate focus
 - Clarified execution layer responsibilities
+
+7. **Live Command Implementation**:
+   - Created dedicated live/ package for handling live commands
+   - Implemented handlers for all command types:
+     * Basic device commands (tap, swipe, wake, sleep, keyevent, app_launch)
+     * Keyboard sequences with proper delays and humanization
+     * Special sequences in sandbox environment
+   - Added immediate screenshot capture and return after command execution
+   - Standardized command response format with command_id/session_id correlation
+   - Streamlined execution by bypassing workflow verification system
+
+Rationale for Live Command Structure:
+- Live commands need immediate execution and feedback
+- Commands map directly to existing functionality (device commands, keyboard sequences, special sequences)
+- Each command is self-contained - no need for sequences or verification
+- Screenshot capture is mandatory for visual feedback
+- Session/command IDs enable proper response correlation
+- Keep command definitions near the handlers in live/ package
 - Completed implementation of three critical areas:
 
 1. **Binary Data Handling**:

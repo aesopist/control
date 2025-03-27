@@ -31,7 +31,7 @@ class Config:
             return
             
         # Initialize paths
-        self.base_path = Path(__file__).parent.parent.parent
+        self.base_path = Path(__file__).parent.parent
         self.config_path = self.base_path / "config"
         self.config_path.mkdir(exist_ok=True)
         

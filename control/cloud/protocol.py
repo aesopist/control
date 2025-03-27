@@ -16,6 +16,8 @@ class MessageType(Enum):
     SPECIAL_SEQUENCE = "special_sequence"
     RECOVERY_SCRIPT = "recovery_script"
     BINARY_TRANSFER = "binary_transfer"
+    PING = "ping"
+    PONG = "pong"
 
 class ProtocolError(Enum):
     """Protocol error codes"""
@@ -130,9 +132,11 @@ class MessageHandler(Protocol):
 
 class Message:
     """Base message class"""
-    def __init__(self, message_type: MessageType, content: Dict):
-        self.type = message_type
-        self.content = content
+    def __init__(self, type: MessageType, data: Dict, id: Optional[str] = None, device_id: Optional[str] = None):
+        self.type = type
+        self.data = data
+        self.id = id
+        self.device_id = device_id
 
     @property
     def package_type(self) -> str:

@@ -1,0 +1,55 @@
+{
+    "version": "8.0.0",
+    "cloud": {
+        "url": "ws://127.0.0.1:8765/control",
+        "ping_interval": 30,
+        "reconnect_interval": 5,
+        "connection_timeout": 30,
+        "max_chunk_size": 1048576
+    },
+    "device": {
+        "check_interval": 5,
+        "reconnect_attempts": 3,
+        "command_timeout": 30
+    },
+    "workflow": {
+        "verification_timeout": 10,
+        "action_delay_range": [0.5, 2.0],
+        "max_retries": 3,
+        "retry_delay": 5,
+        "encryption_key": "test_encryption_key_for_development_only"
+    },
+    "recovery": {
+        "max_attempts": 3,
+        "delay_between_attempts": 5,
+        "timeout": 300
+    },
+    "screen": {
+        "match_threshold": 1000,
+        "cache_duration": 1.0,
+        "mse_threshold": 1000
+    },
+    "debug": {
+        "save_verification_images": true,
+        "save_recovery_scripts": true,
+        "screen_verification": true,
+        "log_level": "DEBUG"
+    },
+    "client": {
+        "id": "control_test"
+    },
+    "devices": {
+        "R3CR40KCA8F": {
+            "friendly_name": "test_phone1",
+            "ip_address": "192.168.1.201",
+            "adb_port": 5555,
+            "keyboard_port": 8080
+        },
+        "192.168.1.201:5555": {
+            "friendly_name": "test_phone1",
+            "ip_address": "192.168.1.201",
+            "adb_port": 5555,
+            "keyboard_port": 8080
+        }
+    }
+}
