@@ -3,7 +3,8 @@ Protocol definitions for Control-Cloud communication.
 """
 
 from enum import Enum, auto
-from typing import Dict, Type, Optional, Any
+from typing import Dict, Type, Optional, Any, Union
+import logging
 import struct
 import json
 from dataclasses import dataclass
@@ -18,6 +19,12 @@ class MessageType(Enum):
     BINARY_TRANSFER = "binary_transfer"
     PING = "ping"
     PONG = "pong"
+    RESULT = "result"
+    ERROR = "error"
+    STATUS = "status"
+    DEVICE_LIST = "device_list"
+    DEVICE_DISCONNECTED = "device_disconnected"
+    CLIENT_INFO = "client_info"
 
 class ProtocolError(Enum):
     """Protocol error codes"""
@@ -132,21 +139,32 @@ class MessageHandler(Protocol):
 
 class Message:
     """Base message class"""
-    def __init__(self, type: MessageType, data: Dict, id: Optional[str] = None, device_id: Optional[str] = None):
-        self.type = type
+    def __init__(self, type: Union[MessageType, str], data: Dict, id: Optional[str] = None, device_id: Optional[str] = None):
+        # Handle both MessageType enum and string
+        if isinstance(type, str):
+            try:
+                self.type = MessageType(type)
+            except ValueError:
+                # If not a valid enum value, store as is but log a warning
+                self.type = type
+                logging.getLogger("Message").warning(f"Unknown message type: {type}")
+        else:
+            self.type = type
+            
         self.data = data
         self.id = id
         self.device_id = device_id
+        self.content = data  # Alias data as content for backward compatibility
 
     @property
     def package_type(self) -> str:
         """Get package type from content"""
-        return self.content.get("package_type", "")
+        return self.data.get("package_type", "")
 
     @property
     def package_id(self) -> str:
         """Get package ID from content"""
-        return self.content.get("package_id", "")
+        return self.data.get("package_id", "")
 
     def validate(self) -> bool:
         """Validate message content"""

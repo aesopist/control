@@ -2,8 +2,7 @@
 
 Based on our discussions and the package structure we've defined, here's a comprehensive file structure for the Control component:
 
-```
-```
+
 control/
 ├── README.md                   # Documentation
 ├── requirements.txt            # Python dependencies
@@ -59,7 +58,7 @@ control/
     ├── workflows/              # Workflow temporary files
     ├── screenshots/            # Screenshot temporary files
     └── sandbox/                # Sandbox temporary files
-```
+
 
 ## Key Components
 
@@ -105,6 +104,84 @@ Handles communication with the custom keyboard app:
 - Executing keyboard sequences (typing, dictation, autofill)
 
 # Control Component Package Structures
+
+## Device Status Reporting
+
+Control now reports device status to the Cloud in several ways:
+
+1. **Initial Device List**:
+   - When Control connects to the Cloud, it sends a list of all connected devices
+   - This includes device IDs, friendly names, connection types, and IP addresses
+   - Message type: `DEVICE_LIST`
+
+2. **Client Information**:
+   - Control identifies itself to the Cloud with detailed system information
+   - Includes hostname, platform, version, and other system details
+   - Message type: `CLIENT_INFO`
+
+3. **Device Disconnection Notifications**:
+   - When a device disconnects and cannot be reconnected after multiple attempts
+   - For WiFi devices: Attempts reconnection up to 3 times (configurable)
+   - For USB devices: Notifies immediately upon disconnection
+   - Message type: `DEVICE_DISCONNECTED`
+
+### Device List Message Structure
+
+```json
+{
+  "type": "device_list",
+  "data": {
+    "devices": [
+      {
+        "device_id": "192.168.1.201:5555",
+        "friendly_name": "phone1",
+        "connection_type": "wifi",
+        "ip_address": "192.168.1.201",
+        "adb_port": 5555,
+        "status": "connected"
+      },
+      {
+        "device_id": "R5CR1296QHR",
+        "friendly_name": "phone2",
+        "connection_type": "usb",
+        "status": "connected"
+      }
+    ],
+    "timestamp": 1648234567.89
+  }
+}
+```
+
+### Client Information Message Structure
+
+```json
+{
+  "type": "client_info",
+  "data": {
+    "client_id": "control",
+    "version": "8.0.0",
+    "hostname": "control-server-1",
+    "platform": "Windows",
+    "platform_version": "10.0.19044",
+    "python_version": "3.9.10",
+    "timestamp": 1648234567.89
+  }
+}
+```
+
+### Device Disconnected Message Structure
+
+```json
+{
+  "type": "device_disconnected",
+  "data": {
+    "device_id": "192.168.1.201:5555",
+    "friendly_name": "phone1",
+    "reason": "Failed to reconnect after 3 attempts",
+    "timestamp": 1648234567.89
+  }
+}
+```
 
 ## Workflow Package Structure
 

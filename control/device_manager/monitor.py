@@ -33,6 +33,8 @@ class ConnectionMonitor:
         
         # Connection tracking
         self._last_known_devices = set()
+        self._reconnect_attempts = {}  # Track reconnection attempts by device_id
+        self._max_reconnect_attempts = self.config.get('device.reconnect_attempts', 3)
     
     def start(self):
         """Start connection monitoring"""
@@ -71,7 +73,7 @@ class ConnectionMonitor:
     
     def _monitor_loop(self):
         """Main monitoring loop"""
-        check_interval = self.config.get('device_check_interval', 5)
+        check_interval = self.config.get('device.check_interval', 5)
         
         while not self._stop_event.is_set():
             try:
@@ -103,12 +105,48 @@ class ConnectionMonitor:
         Args:
             device_id: Device identifier
         """
+        # Initialize reconnect attempts counter if not already present
+        if device_id not in self._reconnect_attempts:
+            self._reconnect_attempts[device_id] = 0
+        
         # Only attempt reconnection for WiFi devices
         if ":" in device_id:
-            self.logger.info(f"Attempting to reconnect to {device_id}")
+            # Increment reconnect attempts
+            self._reconnect_attempts[device_id] += 1
+            attempt_num = self._reconnect_attempts[device_id]
+            
+            self.logger.info(f"Attempting to reconnect to {device_id} (attempt {attempt_num}/{self._max_reconnect_attempts})")
             success = self.connection.connect(device_id)
             
             if success:
                 self.logger.info(f"Successfully reconnected to {device_id}")
+                # Reset reconnect attempts on success
+                self._reconnect_attempts[device_id] = 0
             else:
-                self.logger.warning(f"Failed to reconnect to {device_id}")
+                self.logger.warning(f"Failed to reconnect to {device_id} (attempt {attempt_num}/{self._max_reconnect_attempts})")
+                
+                # Check if max reconnect attempts reached
+                if attempt_num >= self._max_reconnect_attempts:
+                    self.logger.error(f"Max reconnect attempts ({self._max_reconnect_attempts}) reached for {device_id}")
+                    
+                    # Notify Cloud about persistent disconnection
+                    try:
+                        from ..cloud import CloudClient
+                        cloud_client = CloudClient()
+                        cloud_client.send_device_disconnected(
+                            device_id=device_id,
+                            reason=f"Failed to reconnect after {self._max_reconnect_attempts} attempts"
+                        )
+                    except Exception as e:
+                        self.logger.error(f"Error notifying Cloud about device disconnection: {e}")
+        else:
+            # For USB devices, just notify Cloud immediately
+            try:
+                from ..cloud import CloudClient
+                cloud_client = CloudClient()
+                cloud_client.send_device_disconnected(
+                    device_id=device_id,
+                    reason="USB device disconnected"
+                )
+            except Exception as e:
+                self.logger.error(f"Error notifying Cloud about device disconnection: {e}")

@@ -106,6 +106,12 @@ class CloudClient:
                 self._connected = True
                 self.logger.info("Connected to Cloud relay")
                 
+                # Send client information
+                await self._send_client_info()
+                
+                # Send device list
+                await self._send_device_list()
+                
                 # Start ping task
                 ping_task = asyncio.create_task(self._ping_loop())
                 
@@ -460,8 +466,14 @@ class CloudClient:
                     continue
                 
                 # Send JSON message
+                # Handle both enum and string types
+                if hasattr(msg.type, 'value'):
+                    msg_type = msg.type.value
+                else:
+                    msg_type = str(msg.type)
+                    
                 await self._ws.send(json.dumps({
-                    "type": msg.type.value,
+                    "type": msg_type,
                     "data": msg.data,
                     "id": msg.id,
                     "device_id": msg.device_id
@@ -589,6 +601,117 @@ class CloudClient:
         """
         if callback in self._message_callbacks[msg_type]:
             self._message_callbacks[msg_type].remove(callback)
+    
+    async def _send_client_info(self):
+        """Send client information to Cloud"""
+        try:
+            # Get system information
+            import platform
+            import socket
+            
+            # Create client info message
+            client_info = {
+                "client_id": self.config.get('client.id', 'control'),
+                "version": self.config.get('version', '1.0.0'),
+                "hostname": socket.gethostname(),
+                "platform": platform.system(),
+                "platform_version": platform.version(),
+                "python_version": platform.python_version(),
+                "timestamp": time.time()
+            }
+            
+            # Send message
+            await self._ws.send(json.dumps({
+                "type": MessageType.CLIENT_INFO.value,
+                "data": client_info
+            }))
+            
+            self.logger.info(f"Sent client information to Cloud")
+            
+        except Exception as e:
+            self.logger.error(f"Error sending client information: {e}")
+    
+    async def _send_device_list(self):
+        """Send list of connected devices to Cloud"""
+        try:
+            from ..device_manager import DeviceManager
+            
+            # Get device manager
+            device_manager = DeviceManager()
+            
+            # Get available devices
+            devices = device_manager.get_available_devices()
+            
+            # Format device list
+            device_list = []
+            for device_id, device_info in devices.items():
+                device_list.append({
+                    "device_id": device_id,
+                    "friendly_name": device_info.get('friendly_name', 'Unknown'),
+                    "connection_type": "wifi" if ":" in device_id else "usb",
+                    "ip_address": device_info.get('ip_address'),
+                    "adb_port": device_info.get('adb_port'),
+                    "status": "connected"
+                })
+            
+            # Send message
+            await self._ws.send(json.dumps({
+                "type": MessageType.DEVICE_LIST.value,
+                "data": {
+                    "devices": device_list,
+                    "timestamp": time.time()
+                }
+            }))
+            
+            self.logger.info(f"Sent device list to Cloud: {len(device_list)} devices")
+            
+        except Exception as e:
+            self.logger.error(f"Error sending device list: {e}")
+    
+    def send_device_disconnected(self, device_id: str, reason: str):
+        """
+        Send notification that a device has disconnected
+        
+        Args:
+            device_id: Device identifier
+            reason: Reason for disconnection
+        """
+        if not self._connected:
+            self.logger.error("Not connected to Cloud relay")
+            return
+        
+        try:
+            # Get device info
+            from ..device_manager import DeviceManager
+            device_manager = DeviceManager()
+            devices = device_manager.get_available_devices()
+            device_info = {}
+            
+            # Try to find device in config if not in available devices
+            if device_id not in devices:
+                devices_config = self.config.get('devices', {})
+                if device_id in devices_config:
+                    device_info = devices_config[device_id]
+            else:
+                device_info = devices[device_id]
+            
+            # Create message
+            msg = Message(
+                type=MessageType.DEVICE_DISCONNECTED,
+                data={
+                    "device_id": device_id,
+                    "friendly_name": device_info.get('friendly_name', 'Unknown'),
+                    "reason": reason,
+                    "timestamp": time.time()
+                }
+            )
+            
+            # Send message
+            self._outgoing_queue.put(msg)
+            self.logger.info(f"Sent device disconnected notification for {device_id}: {reason}")
+            
+        except Exception as e:
+            self.logger.error(f"Error sending device disconnected notification: {e}")
     
     def stop(self):
         """Stop Cloud client"""

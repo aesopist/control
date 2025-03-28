@@ -54,15 +54,22 @@ class LiveCommandHandler:
             # Validate command
             validate_command(command)
             
+            # Translate device ID if needed
+            actual_device_id = self._translate_device_id(device_id)
+            if not actual_device_id:
+                raise CommandError(f"Device not found: {device_id}")
+                
+            self.logger.info(f"Translated device ID '{device_id}' to '{actual_device_id}'")
+            
             # Execute command
-            success, error = self._execute_command(device_id, command)
+            success, error = self._execute_command(actual_device_id, command)
             
             # Always capture screenshot after command
-            screenshot = self.device_manager.capture_screenshot(device_id)
+            screenshot = self.device_manager.capture_screenshot(actual_device_id)
             
             # Send result with command/session correlation
             self.cloud_client.send_message(Message(
-                type=MessageType.RESULT,
+                type="result",  # Use string instead of enum
                 data={
                     "command_id": command["command_id"],
                     "session_id": session_id,
@@ -82,7 +89,7 @@ class LiveCommandHandler:
         except Exception as e:
             self.logger.error(f"Error handling live command: {e}")
             self.cloud_client.send_message(Message(
-                type=MessageType.ERROR,
+                type="error",  # Use string instead of enum
                 data={
                     "command_id": command.get("command_id", "unknown"),
                     "session_id": session_id,
@@ -90,6 +97,60 @@ class LiveCommandHandler:
                 }
             ))
 
+    def _translate_device_id(self, device_id: str) -> Optional[str]:
+        """
+        Translate device ID to actual device ID used by ADB
+        
+        This handles cases where the device ID might be:
+        - A friendly name (e.g., "test_phone1")
+        - A serial number (e.g., "R3CR40KCA8F")
+        - An IP address without port (e.g., "192.168.1.201")
+        - An IP address with port (e.g., "192.168.1.201:5555")
+        
+        Returns:
+            The actual device ID to use with ADB, or None if not found
+        """
+        # Get all available devices
+        available_devices = self.device_manager.get_available_devices()
+        
+        # Case 1: Direct match (device ID is already correct)
+        if device_id in available_devices:
+            return device_id
+            
+        # Case 2: Match by friendly name
+        for actual_id, info in available_devices.items():
+            if info.get('friendly_name') == device_id:
+                return actual_id
+                
+        # Case 3: Match by serial number in config
+        devices_config = self.config.get('devices', {})
+        if device_id in devices_config:
+            # Get IP and port from config
+            ip = devices_config[device_id].get('ip_address')
+            port = devices_config[device_id].get('adb_port', 5555)
+            if ip:
+                # Check if this IP:port is in available devices
+                ip_port = f"{ip}:{port}"
+                if ip_port in available_devices:
+                    return ip_port
+                    
+        # Case 4: IP address without port
+        if ":" not in device_id:
+            # Try with default ADB port
+            ip_port = f"{device_id}:5555"
+            if ip_port in available_devices:
+                return ip_port
+                
+        # Case 5: Partial match (e.g., typo in port)
+        for actual_id in available_devices:
+            if device_id in actual_id or actual_id in device_id:
+                return actual_id
+                
+        # No match found
+        self.logger.warning(f"Could not translate device ID: {device_id}")
+        self.logger.info(f"Available devices: {list(available_devices.keys())}")
+        return None
+        
     def _execute_command(self, device_id: str, command: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         """Execute live command"""
         try:

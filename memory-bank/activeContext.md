@@ -131,17 +131,24 @@ The Control component has progressed from planning to initial implementation. We
 
 ## Recent Accomplishments
 
-1. **Protocol Implementation**:
-   - Created protocol.py with message types, binary header format, error handling, and plugin system
-   - Added protocol_reference.md to document the protocol design
-   - Fixed binary data handling to support string IDs and filenames
-   - Implemented ID mapping for testing and debugging
+1. **Device Status Reporting**:
+   - Implemented comprehensive device status reporting to Cloud
+   - Added client identification with detailed system information
+   - Created device list reporting on connection
+   - Implemented device disconnection notifications with retry mechanism
+   - Enhanced connection monitoring to track reconnection attempts
 
-2. **Test Suite Execution**:
-   - Successfully ran all binary data handling tests
-   - Validated package security with encryption/decryption tests
-   - Fixed CloudSimulator to avoid port conflicts and asyncio issues
-   - Improved test reliability by removing dependencies on external services
+2. **Protocol Enhancement**:
+   - Added new message types: DEVICE_LIST, DEVICE_DISCONNECTED, CLIENT_INFO
+   - Updated protocol.py to handle string message types for backward compatibility
+   - Enhanced Message class to support both enum and string types
+   - Fixed content/data attribute inconsistency in Message class
+
+3. **Connection Monitoring Improvements**:
+   - Added configurable reconnection attempts for WiFi devices
+   - Implemented different handling for USB vs WiFi device disconnections
+   - Added Cloud notification after max reconnection attempts
+   - Enhanced logging for connection status tracking
 
 ## Recent Changes
 
