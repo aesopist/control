@@ -140,13 +140,8 @@ class LiveCommandHandler:
             ip_port = f"{device_id}:5555"
             if ip_port in available_devices:
                 return ip_port
-                
-        # Case 5: Partial match (e.g., typo in port)
-        for actual_id in available_devices:
-            if device_id in actual_id or actual_id in device_id:
-                return actual_id
-                
-        # No match found
+        
+        # No match found - return None instead of using partial matching
         self.logger.warning(f"Could not translate device ID: {device_id}")
         self.logger.info(f"Available devices: {list(available_devices.keys())}")
         return None

@@ -1,0 +1,14 @@
+{
+  "screen_id_1": {
+    "name": "Home Screen",
+    "image": "screen_id_1.png",
+    "validation_regions": [
+      {
+        "x1": 100,
+        "y1": 200,
+        "x2": 300,
+        "y2": 400
+      }
+    ]
+  }
+}

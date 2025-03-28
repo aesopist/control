@@ -206,6 +206,14 @@ async def handle_client_messages(websocket, path):
                         if status:
                             device_statuses[device_id] = status
                             logger.info(f"Device {device_id} status: {status}")
+                elif msg_type == "device_list":
+                    # Process device list message
+                    device_list = msg_data.get("data", {}).get("devices", [])
+                    for device in device_list:
+                        device_id = device.get("device_id")
+                        if device_id:
+                            device_statuses[device_id] = device.get("status", "unknown")
+                            logger.info(f"Device from list: {device_id}, status: {device_statuses[device_id]}")
                 elif msg_type == "error":
                     logger.error(f"Error from client: {msg_data.get('data')}")
                 elif msg_type == "result":
@@ -264,6 +272,28 @@ async def handle_binary_message(websocket, data: bytes):
     
     except Exception as e:
         logger.error(f"Error handling binary message: {e}")
+
+async def request_device_list():
+    """Request the current device list from Control"""
+    if not clients:
+        logger.error("No clients connected")
+        return
+    
+    client_socket = next(iter(clients.values()))
+    
+    try:
+        # Send device list request
+        await client_socket.send(json.dumps({
+            "type": "request_device_list",
+            "data": {
+                "timestamp": time.time()
+            }
+        }))
+        
+        logger.info("Sent device list request")
+        
+    except Exception as e:
+        logger.error(f"Error requesting device list: {e}")
 
 async def send_workflow(device_id: str):
     """Send a workflow package to Control"""
@@ -416,7 +446,7 @@ async def interactive_console():
                 None, lambda: input("Enter device ID: ")
             )
             command_type = await asyncio.get_event_loop().run_in_executor(
-                None, lambda: input("Enter command type (tap, swipe, text): ")
+                None, lambda: input("Enter command type (tap, swipe, keyboard_sequence): ")
             )
             
             if command_type == "tap":
@@ -443,10 +473,14 @@ async def interactive_console():
                 end_y = await asyncio.get_event_loop().run_in_executor(
                     None, lambda: int(input("Enter end y coordinate: "))
                 )
+                duration = await asyncio.get_event_loop().run_in_executor(
+                    None, lambda: int(input("Enter duration (ms): "))
+                )
                 
                 command = create_live_command(device_id, "swipe", [])
                 command["command"]["start_coordinates"] = [start_x, start_y]
                 command["command"]["end_coordinates"] = [end_x, end_y]
+                command["command"]["duration"] = duration
                 
                 if clients:
                     client_socket = next(iter(clients.values()))
@@ -462,17 +496,17 @@ async def interactive_console():
                 # Log the full message
                 logger.debug(f"Sending full message: {json.dumps(message, indent=2)}")
 
-                print(f"Sending swipe command to device {device_id} from ({start_x}, {start_y}) to ({end_x}, {end_y})")
-                logger.debug(f"Sending swipe command to device {device_id} from ({start_x}, {start_y}) to ({end_x}, {end_y})")
+                print(f"Sending swipe command to device {device_id} from ({start_x}, {start_y}) to ({end_x}, {end_y}) with duration {duration}ms")
+                logger.debug(f"Sending swipe command to device {device_id} from ({start_x}, {start_y}) to ({end_x}, {end_y}) with duration {duration}ms")
                 await client_socket.send(json.dumps(message))
                 logger.info(f"Sent swipe command to device {device_id}")
                 
-            elif command_type == "text":
+            elif command_type == "keyboard_sequence":
                 text = await asyncio.get_event_loop().run_in_executor(
                     None, lambda: input("Enter text: ")
                 )
                 
-                command = create_live_command(device_id, "text", [])
+                command = create_live_command(device_id, "keyboard_sequence", [])
                 command["command"]["keyboard_sequence"] = {
                     "sequence": [
                         {"action": "type", "text": text, "delay_after": 0.2}
@@ -483,7 +517,7 @@ async def interactive_console():
                     client_socket = next(iter(clients.values()))
                 
                 # Log the full command JSON
-                logger.debug(f"Full text command JSON: {json.dumps(command, indent=2)}")
+                logger.debug(f"Full keyboard sequence command JSON: {json.dumps(command, indent=2)}")
 
                 message = {
                     "type": "live_command",
@@ -493,10 +527,10 @@ async def interactive_console():
                 # Log the full message
                 logger.debug(f"Sending full message: {json.dumps(message, indent=2)}")
 
-                print(f"Sending text command to device {device_id} with text: {text}")
-                logger.debug(f"Sending text command to device {device_id} with text: {text}")
+                print(f"Sending keyboard sequence command to device {device_id} with text: {text}")
+                logger.debug(f"Sending keyboard sequence command to device {device_id} with text: {text}")
                 await client_socket.send(json.dumps(message))
-                logger.info(f"Sent text command to device {device_id}")
+                logger.info(f"Sent keyboard sequence command to device {device_id}")
             
         elif choice == "3":
             device_id = await asyncio.get_event_loop().run_in_executor(
@@ -512,9 +546,17 @@ async def interactive_console():
                 print(f"  - {client_id}")
                 
         elif choice == "5":
+            # Request updated device list before showing
+            await request_device_list()
+            # Give a moment for the response to be processed
+            await asyncio.sleep(0.5)
+            
             print("Device statuses:")
-            for device_id, status in device_statuses.items():
-                print(f"  - {device_id}: {status}")
+            if device_statuses:
+                for device_id, status in device_statuses.items():
+                    print(f"  - {device_id}: {status}")
+            else:
+                print("  No devices found or no status information available")
                 
         elif choice == "6":
             print("Exiting...")

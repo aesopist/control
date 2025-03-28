@@ -1,0 +1,21 @@
+{
+  "workflow_id": "workflow_2c9acd82",
+  "name": "Test Workflow",
+  "sequences": [
+    {
+      "sequence_id": "sequence_157bfbd4",
+      "name": "Test Sequence",
+      "steps": [
+        {
+          "step_id": "step_62d857bc",
+          "type": "tap",
+          "coordinates": [
+            540,
+            960
+          ],
+          "expected_screen_after": "screen_id_1"
+        }
+      ]
+    }
+  ]
+}

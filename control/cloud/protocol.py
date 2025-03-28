@@ -17,6 +17,7 @@ class MessageType(Enum):
     SPECIAL_SEQUENCE = "special_sequence"
     RECOVERY_SCRIPT = "recovery_script"
     BINARY_TRANSFER = "binary_transfer"
+    BINARY = "binary"  # Added for binary message handling
     PING = "ping"
     PONG = "pong"
     RESULT = "result"
@@ -251,7 +252,7 @@ class ProtocolConstants:
     STATUS = "status"      # Status updates
     ERROR = "error"        # Error messages
     RESULT = "result"      # Operation results
-
+    
     # Package Types
     WORKFLOW = "workflow"
     LIVE_COMMAND = "live_command"
@@ -271,6 +272,15 @@ class ProtocolConstants:
     STOPPING = "stopping"
     COMPLETED = "completed"
     FAILED = "failed"
-
-# Global protocol instance
-protocol = Protocol()
+    
+    # New constants for step types
+    ACTION_TAP = "tap"
+    ACTION_SWIPE = "swipe"
+    ACTION_TEXT = "text"
+    ACTION_KEY = "key"
+    ACTION_SPECIAL = "special"
+    
+    # New constants for execution status
+    STATUS_SUCCESS = "success"
+    STATUS_FAILURE = "failed"
+    STATUS_ERROR = "error"
